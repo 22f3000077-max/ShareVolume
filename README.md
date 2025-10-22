@@ -1,3 +1,2 @@
-# ShareVolume
-
-Generated application for ShareVolume
+json
+    {"entityName": "Carrier Global", "max": {"val": ..., "fy": ...}, "min": {"val": ..., "fy": ...}}
