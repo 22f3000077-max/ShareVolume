@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Shares Outstanding</title>
+    <!-- Bootstrap CSS for visual appeal and responsive design -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5; /* Light grey background */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 850px;
+            width: 100%;
+            margin: 40px auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); /* Softer shadow */
+        }
+        h1 {
+            color: #0056b3; /* Carrier Global brand blue */
+            margin-bottom: 35px;
+            text-align: center;
+            font-size: 2.5em;
+            font-weight: 600;
+        }
+        .data-section {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            gap: 25px; /* Spacing between cards */
+        }
+        .data-card {
+            flex: 1;
+            min-width: 320px;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background-color: #f8fcff; /* Very light blue tint */
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s ease-in-out;
+        }
+        .data-card:hover {
+            transform: translateY(-5px); /* Slight lift on hover */
+        }
+        .data-card h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.6em;
+            font-weight: 500;
+        }
+        .data-card .value {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #007bff; /* Bootstrap primary blue */
+            margin-bottom: 10px;
+            display: block; /* Ensure it takes full width */
+        }
+        .data-card .year {
+            font-size: 1.3em;
+            color: #6c757d; /* Bootstrap muted text color */
+            font-weight: 400;
+        }
+        .error-message {
+            color: #dc3545; /* Bootstrap danger red */
+            background-color: #f8d7da; /* Light red background */
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 30px;
+            font-weight: 500;
+            font-size: 1.1em;
+            display: none; /* Hidden by default */
+        }
+        @media (max-width: 768px) {
+            .data-section {
+                flex-direction: column;
+                align-items: center;
+            }
+            .data-card {
+                min-width: 90%;
+            }
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="share-entity-name">Loading Company Data...</h1>
+        <div class="data-section">
+            <div class="data-card">
+                <h3>Maximum Shares Outstanding</h3>
+                <p class="value" id="share-max-value">...</p>
+                <p class="year" id="share-max-fy">...</p>
+            </div>
+            <div class="data-card">
+                <h3>Minimum Shares Outstanding</h3>
+                <p class="value" id="share-min-value">...</p>
+                <p class="year" id="share-min-fy">...</p>
+            </div>
+        </div>
+        <div id="error-message" class="error-message" role="alert"></div>
+    </div>
+
+    <!-- Bootstrap JS for potential future interactive components, not strictly required for this static display -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const defaultCik = '0001783180'; // Carrier Global's CIK
+            const urlParams = new URLSearchParams(window.location.search);
+            const cikParam = urlParams.get('CIK');
+
+            const entityNameElement = document.getElementById('share-entity-name');
+            const shareMaxValueElement = document.getElementById('share-max-value');
+            const shareMaxFyElement = document.getElementById('share-max-fy');
+            const shareMinValueElement = document.getElementById('share-min-value');
+            const shareMinFyElement = document.getElementById('share-min-fy');
+            const errorMessageElement = document.getElementById('error-message');
+
+            function showErrorMessage(message) {
+                errorMessageElement.textContent = message;
+                errorMessageElement.style.display = 'block';
+            }
+
+            function clearErrorMessage() {
+                errorMessageElement.textContent = '';
+                errorMessageElement.style.display = 'none';
+            }
+
+            function updateUI(data) {
+                if (!data || !data.entityName || !data.max || !data.min || data.max.val === null || data.min.val === null) {
+                    showErrorMessage('Invalid data structure or missing values received. Cannot update display.');
+                    // Reset UI elements to indicate an error or missing data
+                    document.title = 'Error Loading Data';
+                    entityNameElement.textContent = 'Error Loading Company Data';
+                    shareMaxValueElement.textContent = 'N/A';
+                    shareMaxFyElement.textContent = 'N/A';
+                    shareMinValueElement.textContent = 'N/A';
+                    shareMinFyElement.textContent = 'N/A';
+                    return;
+                }
+                document.title = `${data.entityName} Shares Outstanding`;
+                entityNameElement.textContent = data.entityName;
+                shareMaxValueElement.textContent = data.max.val.toLocaleString(); // Format number with commas
+                shareMaxFyElement.textContent = `Fiscal Year: ${data.max.fy}`;
+                shareMinValueElement.textContent = data.min.val.toLocaleString(); // Format number with commas
+                shareMinFyElement.textContent = `Fiscal Year: ${data.min.fy}`;
+                clearErrorMessage();
+            }
+
+            async function fetchCompanyData(cik) {
+                clearErrorMessage();
+                // Ensure CIK is a 10-digit string, padding with leading zeros if necessary
+                const paddedCik = String(cik).padStart(10, '0');
+                const secApiUrl = `https://data.sec.gov/api/xbrl/companyconcept/CIK${paddedCik}/dei/EntityCommonStockSharesOutstanding.json`;
+                
+                // SEC guidance: "Please include a descriptive User-Agent header in your requests."
+                // For client-side JavaScript's fetch API, the browser sets the User-Agent header,
+                // and it cannot be arbitrarily overridden due to browser security restrictions (e.g., setting 'User-Agent' directly).
+                // However, the SEC API typically allows direct browser fetches with default User-Agents.
+                // The brief also mentions using "any proxy, e.g. AIPipe" for the ?CIK= case, but no specific proxy URL is provided.
+                // Given this is a single-page app and no proxy configuration is supplied,
+                // we proceed with a direct fetch, assuming it works as it generally does for SEC data.
+                // If CORS issues or strict User-Agent requirements become a problem for specific environments,
+                // a server-side proxy (e.g., hosted on a platform like Netlify Functions or Vercel Edge)
+                // would be necessary to prepend to `secApiUrl`.
+                
+                try {
+                    const response = await fetch(secApiUrl); // Browser sets User-Agent
+                    
+                    if (!response.ok) {
+                        let errorDetail = `HTTP error! Status: ${response.status}`;
+                        if (response.status === 403) {
+                             errorDetail = `Access Denied (403): The SEC API might be blocking requests from this origin or requires a specific User-Agent.`;
+                        } else if (response.status === 404) {
+                             errorDetail = `Data not found for CIK ${paddedCik}. It might be an invalid CIK or data is unavailable.`;
+                        }
+                        throw new Error(errorDetail);
+                    }
+                    const rawData = await response.json();
+
+                    const entityName = rawData.entityName;
+                    const shares = rawData.units.shares;
+
+                    // Filter shares data: fy > "2020" and val must be a number
+                    const filteredShares = shares.filter(entry => {
+                        return parseInt(entry.fy) > 2020 && typeof entry.val === 'number';
+                    });
+
+                    if (filteredShares.length === 0) {
+                        throw new Error("No shares data found matching criteria (FY > 2020 and numeric value).");
+                    }
+
+                    // Sort to easily find min/max values. Tie-breaking is handled by sort order.
+                    filteredShares.sort((a, b) => a.val - b.val);
+
+                    const minValEntry = filteredShares[0];
+                    const maxValEntry = filteredShares[filteredShares.length - 1];
+
+                    return {
+                        entityName: entityName,
+                        max: {
+                            val: maxValEntry.val,
+                            fy: maxValEntry.fy
+                        },
+                        min: {
+                            val: minValEntry.val,
+                            fy: minValEntry.fy
+                        }
+                    };
+
+                } catch (error) {
+                    console.error('Error fetching or processing data:', error);
+                    showErrorMessage(`Failed to load data for CIK ${paddedCik}: ${error.message}. Please check the CIK, ensure it's a 10-digit string, or try again later.`);
+                    return null; // Indicate failure
+                }
+            }
+
+            // Determine which CIK to use: from URL parameter or default (Carrier Global)
+            const targetCik = cikParam || defaultCik;
+            const companyData = await fetchCompanyData(targetCik);
+            if (companyData) {
+                updateUI(companyData);
+            }
+            // If companyData is null, an error message has already been displayed by fetchCompanyData
+        });
+    </script>
+</body>
+</html>
